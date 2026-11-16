@@ -1,0 +1,301 @@
+{
+  "entities": {
+    "FamilySettings": {
+      "title": "FamilySettings",
+      "description": "Parent-level security and mode settings for a family account.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated parent user UID."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Parent display name."
+        },
+        "parentPinHash": {
+          "type": "string",
+          "description": "SHA-256 hex digest of the 4-digit parent PIN."
+        },
+        "hasParentPin": {
+          "type": "boolean",
+          "description": "Whether a parent PIN has been configured."
+        },
+        "kidModeActive": {
+          "type": "boolean",
+          "description": "Whether the device is currently locked in Kid Mode."
+        },
+        "activeKidModeChildId": {
+          "type": "string",
+          "description": "The child profile ID active in Kid Mode."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when settings were created via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when settings were updated via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "displayName",
+        "hasParentPin",
+        "kidModeActive",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ChildProfile": {
+      "title": "ChildProfile",
+      "description": "Child profile with daily screen time limits, schedules, and safety controls.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Parent owner UID."
+        },
+        "name": {
+          "type": "string",
+          "description": "Child's first name."
+        },
+        "age": {
+          "type": "integer",
+          "description": "Child's age in years."
+        },
+        "avatarKey": {
+          "type": "string",
+          "enum": ["fox", "owl", "panda", "rocket", "dino", "unicorn"],
+          "description": "Avatar identifier."
+        },
+        "dailyLimitMinutes": {
+          "type": "integer",
+          "description": "Weekday screen time allowance in minutes."
+        },
+        "weekendLimitMinutes": {
+          "type": "integer",
+          "description": "Weekend screen time allowance in minutes."
+        },
+        "usedMinutesToday": {
+          "type": "integer",
+          "description": "Screen time consumed today in minutes."
+        },
+        "bonusMinutesToday": {
+          "type": "integer",
+          "description": "Extra bonus minutes granted today."
+        },
+        "isPaused": {
+          "type": "boolean",
+          "description": "Whether the child's device access is immediately paused."
+        },
+        "bedtimeEnabled": {
+          "type": "boolean",
+          "description": "Whether bedtime downtime schedule is active."
+        },
+        "bedtimeStartMinutes": {
+          "type": "integer",
+          "description": "Minutes from midnight when bedtime begins."
+        },
+        "bedtimeEndMinutes": {
+          "type": "integer",
+          "description": "Minutes from midnight when bedtime ends."
+        },
+        "studyFocusEnabled": {
+          "type": "boolean",
+          "description": "Whether school/study focus mode is enabled."
+        },
+        "studyStartMinutes": {
+          "type": "integer",
+          "description": "Minutes from midnight when study focus begins."
+        },
+        "studyEndMinutes": {
+          "type": "integer",
+          "description": "Minutes from midnight when study focus ends."
+        },
+        "contentRating": {
+          "type": "string",
+          "enum": ["kids_4_7", "preteen_8_12", "teen_13_plus"],
+          "description": "Content safety age tier."
+        },
+        "safeSearchEnabled": {
+          "type": "boolean",
+          "description": "Whether SafeSearch filtering is enabled."
+        },
+        "blockPurchases": {
+          "type": "boolean",
+          "description": "Whether in-app purchases are blocked."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "name",
+        "age",
+        "avatarKey",
+        "dailyLimitMinutes",
+        "weekendLimitMinutes",
+        "usedMinutesToday",
+        "bonusMinutesToday",
+        "isPaused",
+        "bedtimeEnabled",
+        "bedtimeStartMinutes",
+        "bedtimeEndMinutes",
+        "studyFocusEnabled",
+        "studyStartMinutes",
+        "studyEndMinutes",
+        "contentRating",
+        "safeSearchEnabled",
+        "blockPurchases",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AppRule": {
+      "title": "AppRule",
+      "description": "Per-app access rule (allowed, daily limited, or blocked) for a child.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Parent owner UID."
+        },
+        "childId": {
+          "type": "string",
+          "description": "Associated child profile document ID."
+        },
+        "packageName": {
+          "type": "string",
+          "description": "Android package identifier."
+        },
+        "appName": {
+          "type": "string",
+          "description": "Human-readable app title."
+        },
+        "category": {
+          "type": "string",
+          "description": "App category label."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["allowed", "limited", "blocked"],
+          "description": "Access rule enforcement state."
+        },
+        "dailyLimitMinutes": {
+          "type": "integer",
+          "description": "Per-app daily cap in minutes when limited."
+        },
+        "usedMinutesToday": {
+          "type": "integer",
+          "description": "Today's usage in minutes."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "childId",
+        "packageName",
+        "appName",
+        "category",
+        "status",
+        "dailyLimitMinutes",
+        "usedMinutesToday",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "RewardQuest": {
+      "title": "RewardQuest",
+      "description": "Positive habit or chore quest that earns bonus screen time.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Parent owner UID."
+        },
+        "childId": {
+          "type": "string",
+          "description": "Associated child profile document ID."
+        },
+        "title": {
+          "type": "string",
+          "description": "Quest or chore title."
+        },
+        "rewardMinutes": {
+          "type": "integer",
+          "description": "Bonus screen time awarded when approved."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["open", "pending_approval", "approved"],
+          "description": "Quest completion workflow state."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "childId",
+        "title",
+        "rewardMinutes",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/FamilySettings"
+      },
+      "description": "Parent family settings and Kid Mode lock state."
+    },
+    "/users/{userId}/children/{childId}": {
+      "schema": {
+        "$ref": "#/entities/ChildProfile"
+      },
+      "description": "Child profiles owned by the parent user."
+    },
+    "/users/{userId}/children/{childId}/appRules/{ruleId}": {
+      "schema": {
+        "$ref": "#/entities/AppRule"
+      },
+      "description": "Per-app access and daily time limit rules for a child."
+    },
+    "/users/{userId}/children/{childId}/quests/{questId}": {
+      "schema": {
+        "$ref": "#/entities/RewardQuest"
+      },
+      "description": "Screen time reward quests for a child."
+    }
+  }
+}

@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">KidGuard</string>
+    <string name="sign_in_headline">Calm, healthy screen habits for the whole family</string>
+    <string name="sign_in_subtitle">Set daily time limits, bedtime schedules, app guardrails, and positive bonus quests synced across your family account.</string>
+    <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="nav_overview">Overview</string>
+    <string name="nav_apps">App Rules</string>
+    <string name="nav_schedule">Schedule</string>
+    <string name="nav_family">Family</string>
+    <string name="usage_access_title">Device Usage Access</string>
+    <string name="usage_access_needed">Allow Usage Access in Android Settings to view live screen time for apps installed on this device.</string>
+    <string name="grant_usage_access">Open Usage Settings</string>
+</resources>

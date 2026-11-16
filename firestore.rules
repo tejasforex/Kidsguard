@@ -1,0 +1,204 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidFamilySettings(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80 &&
+             (!('parentPinHash' in data) || (data.parentPinHash is string && data.parentPinHash.size() <= 128)) &&
+             data.hasParentPin is bool &&
+             data.kidModeActive is bool &&
+             (!('activeKidModeChildId' in data) || (data.activeKidModeChildId is string && data.activeKidModeChildId.size() <= 128)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidChildProfile(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 40 &&
+             data.age is int && data.age >= 1 && data.age <= 17 &&
+             data.avatarKey is string && data.avatarKey in ['fox', 'owl', 'panda', 'rocket', 'dino', 'unicorn'] &&
+             data.dailyLimitMinutes is int && data.dailyLimitMinutes >= 15 && data.dailyLimitMinutes <= 720 &&
+             data.weekendLimitMinutes is int && data.weekendLimitMinutes >= 15 && data.weekendLimitMinutes <= 720 &&
+             data.usedMinutesToday is int && data.usedMinutesToday >= 0 && data.usedMinutesToday <= 1440 &&
+             data.bonusMinutesToday is int && data.bonusMinutesToday >= 0 && data.bonusMinutesToday <= 360 &&
+             data.isPaused is bool &&
+             data.bedtimeEnabled is bool &&
+             data.bedtimeStartMinutes is int && data.bedtimeStartMinutes >= 0 && data.bedtimeStartMinutes <= 1439 &&
+             data.bedtimeEndMinutes is int && data.bedtimeEndMinutes >= 0 && data.bedtimeEndMinutes <= 1439 &&
+             data.studyFocusEnabled is bool &&
+             data.studyStartMinutes is int && data.studyStartMinutes >= 0 && data.studyStartMinutes <= 1439 &&
+             data.studyEndMinutes is int && data.studyEndMinutes >= 0 && data.studyEndMinutes <= 1439 &&
+             data.contentRating is string && data.contentRating in ['kids_4_7', 'preteen_8_12', 'teen_13_plus'] &&
+             data.safeSearchEnabled is bool &&
+             data.blockPurchases is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidAppRule(data, userId, childId) {
+      return data.userId is string && data.userId == userId &&
+             data.childId is string && data.childId == childId &&
+             data.packageName is string && data.packageName.size() >= 1 && data.packageName.size() <= 160 &&
+             data.appName is string && data.appName.size() >= 1 && data.appName.size() <= 80 &&
+             data.category is string && data.category.size() >= 1 && data.category.size() <= 40 &&
+             data.status is string && data.status in ['allowed', 'limited', 'blocked'] &&
+             data.dailyLimitMinutes is int && data.dailyLimitMinutes >= 0 && data.dailyLimitMinutes <= 720 &&
+             data.usedMinutesToday is int && data.usedMinutesToday >= 0 && data.usedMinutesToday <= 1440 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidRewardQuest(data, userId, childId) {
+      return data.userId is string && data.userId == userId &&
+             data.childId is string && data.childId == childId &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 80 &&
+             data.rewardMinutes is int && data.rewardMinutes >= 5 && data.rewardMinutes <= 120 &&
+             data.status is string && data.status in ['open', 'pending_approval', 'approved'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().keys().hasAll(['userId', 'displayName', 'hasParentPin', 'kidModeActive', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'displayName', 'parentPinHash', 'hasParentPin', 'kidModeActive', 'activeKidModeChildId', 'createdAt', 'updatedAt']) &&
+                       isValidFamilySettings(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidFamilySettings(incoming(), userId) &&
+                       (
+                         incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'parentPinHash', 'hasParentPin', 'updatedAt']) ||
+                         incoming().diff(existing()).affectedKeys().hasOnly(['kidModeActive', 'activeKidModeChildId', 'updatedAt'])
+                       );
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      match /children/{childId} {
+        allow get: if isOwner(userId) && isValidId(childId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(childId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'name', 'age', 'avatarKey', 'dailyLimitMinutes', 'weekendLimitMinutes',
+                           'usedMinutesToday', 'bonusMinutesToday', 'isPaused', 'bedtimeEnabled',
+                           'bedtimeStartMinutes', 'bedtimeEndMinutes', 'studyFocusEnabled',
+                           'studyStartMinutes', 'studyEndMinutes', 'contentRating',
+                           'safeSearchEnabled', 'blockPurchases', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'name', 'age', 'avatarKey', 'dailyLimitMinutes', 'weekendLimitMinutes',
+                           'usedMinutesToday', 'bonusMinutesToday', 'isPaused', 'bedtimeEnabled',
+                           'bedtimeStartMinutes', 'bedtimeEndMinutes', 'studyFocusEnabled',
+                           'studyStartMinutes', 'studyEndMinutes', 'contentRating',
+                           'safeSearchEnabled', 'blockPurchases', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidChildProfile(incoming(), userId);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(childId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidChildProfile(incoming(), userId) &&
+                         (
+                           incoming().diff(existing()).affectedKeys().hasOnly(['name', 'age', 'avatarKey', 'dailyLimitMinutes', 'weekendLimitMinutes', 'updatedAt']) ||
+                           incoming().diff(existing()).affectedKeys().hasOnly(['isPaused', 'usedMinutesToday', 'bonusMinutesToday', 'updatedAt']) ||
+                           incoming().diff(existing()).affectedKeys().hasOnly([
+                             'bedtimeEnabled', 'bedtimeStartMinutes', 'bedtimeEndMinutes',
+                             'studyFocusEnabled', 'studyStartMinutes', 'studyEndMinutes',
+                             'contentRating', 'safeSearchEnabled', 'blockPurchases',
+                             'dailyLimitMinutes', 'weekendLimitMinutes', 'updatedAt'
+                           ])
+                         );
+
+        allow delete: if isOwner(userId) && isValidId(childId);
+
+        match /appRules/{ruleId} {
+          allow get: if isOwner(userId) && isValidId(childId) && isValidId(ruleId);
+          allow list: if isOwner(userId);
+
+          allow create: if isOwner(userId) &&
+                           isValidId(childId) &&
+                           isValidId(ruleId) &&
+                           incoming().keys().hasAll(['userId', 'childId', 'packageName', 'appName', 'category', 'status', 'dailyLimitMinutes', 'usedMinutesToday', 'createdAt', 'updatedAt']) &&
+                           incoming().keys().hasOnly(['userId', 'childId', 'packageName', 'appName', 'category', 'status', 'dailyLimitMinutes', 'usedMinutesToday', 'createdAt', 'updatedAt']) &&
+                           isValidAppRule(incoming(), userId, childId) &&
+                           exists(/databases/$(database)/documents/users/$(userId)/children/$(childId));
+
+          allow update: if isOwner(userId) &&
+                           isValidId(childId) &&
+                           isValidId(ruleId) &&
+                           incoming().userId == existing().userId &&
+                           incoming().childId == existing().childId &&
+                           incoming().packageName == existing().packageName &&
+                           incoming().createdAt == existing().createdAt &&
+                           isValidAppRule(incoming(), userId, childId) &&
+                           incoming().diff(existing()).affectedKeys().hasOnly(['appName', 'category', 'status', 'dailyLimitMinutes', 'usedMinutesToday', 'updatedAt']);
+
+          allow delete: if isOwner(userId) && isValidId(childId) && isValidId(ruleId);
+        }
+
+        match /quests/{questId} {
+          allow get: if isOwner(userId) && isValidId(childId) && isValidId(questId);
+          allow list: if isOwner(userId);
+
+          allow create: if isOwner(userId) &&
+                           isValidId(childId) &&
+                           isValidId(questId) &&
+                           incoming().keys().hasAll(['userId', 'childId', 'title', 'rewardMinutes', 'status', 'createdAt', 'updatedAt']) &&
+                           incoming().keys().hasOnly(['userId', 'childId', 'title', 'rewardMinutes', 'status', 'createdAt', 'updatedAt']) &&
+                           isValidRewardQuest(incoming(), userId, childId) &&
+                           exists(/databases/$(database)/documents/users/$(userId)/children/$(childId));
+
+          allow update: if isOwner(userId) &&
+                           isValidId(childId) &&
+                           isValidId(questId) &&
+                           existing().status != 'approved' &&
+                           incoming().userId == existing().userId &&
+                           incoming().childId == existing().childId &&
+                           incoming().createdAt == existing().createdAt &&
+                           isValidRewardQuest(incoming(), userId, childId) &&
+                           (
+                             (incoming().status == 'pending_approval' && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])) ||
+                             (incoming().status == 'approved' && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])) ||
+                             (incoming().status == 'open' && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'rewardMinutes', 'status', 'updatedAt']))
+                           );
+
+          allow delete: if isOwner(userId) && isValidId(childId) && isValidId(questId);
+        }
+      }
+    }
+  }
+}

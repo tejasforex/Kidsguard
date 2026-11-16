@@ -1,0 +1,6 @@
+{
+  "name": "KidGuard",
+  "description": "Family parental control app to manage kids' screen time, app limits, bedtime schedules, and positive digital habits.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
